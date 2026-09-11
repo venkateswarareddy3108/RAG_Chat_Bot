@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+pymupdf
+chromadb
+langchain-text-splitters
+google-genai
+sse-starlette
+sentence-transformers

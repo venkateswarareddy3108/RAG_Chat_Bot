@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Corpus — document-scoped RAG with PDF preview and client API keys.">
+  <title>Corpus — Document Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2309090b'/%3E%3Cpath d='M8 10h16v2.5H8V10zm0 5h12v2.5H8V15zm0 5h14v2.5H8V20z' fill='%232dd4bf'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="brand-copy">
+          <span class="brand-name">Corpus</span>
+          <span class="brand-tag">Document intelligence</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="status-pill" id="apiPill" title="API key status">Checking…</span>
+        <span class="status-pill scope-pill" id="scopePill">No PDF selected</span>
+        <button type="button" class="btn btn-ghost" id="settingsBtn">Settings</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="rail rail-docs">
+        <div class="rail-head">
+          <h2>Library</h2>
+          <p>Select a PDF to ask questions about it</p>
+        </div>
+
+        <div class="dropzone" id="uploadZone" tabindex="0" role="button" aria-label="Upload PDF">
+          <div class="dropzone-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M12 16V4m0 0l-4 4m4-4l4 4"/>
+              <path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"/>
+            </svg>
+          </div>
+          <strong>Drop PDF here</strong>
+          <span>or browse from disk</span>
+          <label class="btn btn-secondary btn-sm">
+            Browse
+            <input type="file" id="fileInput" accept=".pdf,application/pdf" hidden>
+          </label>
+        </div>
+
+        <div class="doc-list" id="documentList">
+          <div class="empty-state" id="docEmpty">
+            <p>No documents yet</p>
+            <span>Upload a PDF to get started</span>
+          </div>
+        </div>
+      </aside>
+
+      <section class="rail rail-chat">
+        <div class="chat-stream" id="chatMessages">
+          <div class="welcome" id="welcomeMessage">
+            <p class="welcome-kicker">Grounded answers from one selected PDF</p>
+            <h1>Ask Corpus</h1>
+            <p class="welcome-body">
+              Upload documents, select one from the library, then ask questions.
+              Retrieval and answers stay scoped to that PDF only.
+            </p>
+            <ul class="welcome-list">
+              <li>Click a document to select it</li>
+              <li>Use View to open the PDF preview</li>
+              <li>Set your Gemini API key in Settings</li>
+            </ul>
+          </div>
+        </div>
+
+        <form class="composer" id="chatForm" autocomplete="off">
+          <input
+            type="text"
+            id="chatInput"
+            name="question"
+            placeholder="Select a PDF, then ask a question…"
+            aria-label="Question"
+          >
+          <button type="submit" class="btn btn-primary" id="sendBtn" title="Send">
+            Send
+          </button>
+        </form>
+      </section>
+
+      <aside class="rail rail-pipeline">
+        <div class="rail-head">
+          <h2>Pipeline</h2>
+          <p>Live ingestion &amp; retrieval</p>
+        </div>
+
+        <div class="pipeline-block">
+          <div class="pipeline-label">
+            <span class="pulse" id="docSectionDot"></span>
+            Ingestion
+          </div>
+          <div class="pipeline-steps" id="docPipelineSteps">
+            <div class="pipeline-empty" id="docPipelineEmpty">
+              Upload a PDF to watch ingestion.
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline-block">
+          <div class="pipeline-label">
+            <span class="pulse" id="querySectionDot"></span>
+            Retrieval
+          </div>
+          <div class="pipeline-steps" id="queryPipelineSteps">
+            <div class="pipeline-empty" id="queryPipelineEmpty">
+              Ask a question to watch retrieval.
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Settings -->
+  <div class="modal-backdrop" id="settingsModal" hidden>
+    <div class="modal" role="dialog" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <h2 id="settingsTitle">Settings</h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="closeSettingsBtn">Close</button>
+      </div>
+      <p class="modal-copy">
+        Enter your Gemini API key here. It is stored only in this browser
+        (<code>localStorage</code>) and sent as <code>X-Gemini-Api-Key</code>.
+        Embeddings still run locally with BGE-M3.
+      </p>
+      <label class="field-label" for="apiKeyInput">Gemini API key</label>
+      <div class="field-row">
+        <input
+          type="password"
+          id="apiKeyInput"
+          class="field-input"
+          placeholder="AIza…"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button type="button" class="btn btn-ghost btn-sm" id="toggleKeyBtn">Show</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="clearKeyBtn">Clear</button>
+        <button type="button" class="btn btn-primary btn-sm" id="saveKeyBtn">Save key</button>
+      </div>
+      <div id="keyStatus" class="key-status"></div>
+      <a class="text-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">
+        Get a key from Google AI Studio
+      </a>
+    </div>
+  </div>
+
+  <!-- PDF viewer -->
+  <div class="modal-backdrop viewer-backdrop" id="pdfViewerModal" hidden>
+    <div class="viewer-shell" role="dialog" aria-labelledby="pdfViewerTitle">
+      <div class="viewer-head">
+        <div>
+          <h2 id="pdfViewerTitle">PDF preview</h2>
+          <p id="pdfViewerSubtitle" class="viewer-sub"></p>
+        </div>
+        <div class="viewer-actions">
+          <a class="btn btn-secondary btn-sm" id="pdfOpenTabBtn" href="#" target="_blank" rel="noopener">Open tab</a>
+          <button type="button" class="btn btn-ghost btn-sm" id="closePdfViewerBtn">Close</button>
+        </div>
+      </div>
+      <iframe id="pdfFrame" class="pdf-frame" title="PDF preview"></iframe>
+    </div>
+  </div>
+
+  <div class="toast-host" id="toastContainer" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
