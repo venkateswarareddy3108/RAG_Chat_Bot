@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Corpus — Document Intelligence
 
 Professional RAG workspace:
@@ -43,3 +44,7 @@ npm start
 ```
 
 Open **http://localhost:3000**.
+=======
+# RAG_Chat_Bot
+Corpus is a document intelligence app that lets you upload PDFs, select one file, and ask questions answered only from that document using RAG (retrieve → generate), with live pipeline status and in-app PDF preview.
+>>>>>>> 2c56f3f26f438f444fadd747e5616bb672aeb6b7
